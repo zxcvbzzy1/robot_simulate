@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from fr5v6_weld_planning.sample_workpiece import create_t_coupon_stl
 from fr5v6_weld_planning.visualization import build_markers
@@ -38,6 +39,15 @@ def test_markers_cover_required_visual_layers(tmp_path):
     namespaces = {marker.ns for marker in markers.markers}
     assert {'workpiece', 'candidate_seams', 'selected_seam', 'sampled_seam',
             'tcp_x', 'tcp_y', 'tcp_z', 'approach', 'retreat'} <= namespaces
+
+
+def test_rviz_subscribes_to_transient_local_weld_markers():
+    rviz_path = Path(__file__).parents[2] / 'fr5v6_moveit_config/config/moveit.rviz'
+    config = yaml.safe_load(rviz_path.read_text(encoding='utf-8'))
+    displays = config['Visualization Manager']['Displays']
+    marker = next(item for item in displays if item.get('Name') == 'Weld Markers')
+    assert marker['Marker Topic']['Value'] == '/weld_markers'
+    assert marker['Marker Topic']['Durability Policy'] == 'Transient Local'
 
 
 def test_world_poses_and_process_speed_follow_configuration(tmp_path):
