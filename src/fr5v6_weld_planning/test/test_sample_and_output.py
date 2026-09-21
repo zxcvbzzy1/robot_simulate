@@ -1,5 +1,6 @@
 import csv
 import json
+from pathlib import Path
 
 import pytest
 import yaml
@@ -39,6 +40,12 @@ def test_config_rejects_non_metre_units(tmp_path):
 
     with pytest.raises(ConfigError, match='metres'):
         load_config(path)
+
+
+def test_project_config_has_finite_rrtconnect_retries():
+    path = Path(__file__).parents[1] / 'config/weld_project.yaml'
+    config = load_config(path)
+    assert 1 < config['planning']['service_retries'] <= 10
 
 
 def test_output_files_have_stable_schema(tmp_path):

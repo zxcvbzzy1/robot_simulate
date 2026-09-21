@@ -258,15 +258,27 @@ class WeldMoveItExecutor:
             for name, value in zip(self.joints, target)
         ]
         motion.goal_constraints = [constraints]
-        response = self._wait_future(
-            self.plan_client.call_async(request), self.config['timeouts']['planning'],
-            'approach positioning plan')
-        result = response.motion_plan_response
-        if result.error_code.val != MoveItErrorCodes.SUCCESS:
-            raise TrajectoryValidationError(
-                f'approach positioning plan failed, MoveIt code {result.error_code.val}')
-        self.review_moveit_trajectory(result.trajectory, self.positions, target)
-        return result.trajectory
+        retries = int(self.config['planning']['service_retries'])
+        if retries <= 0:
+            raise TrajectoryValidationError('planning service_retries must be positive')
+        last_detail = 'no planning response'
+        for attempt in range(1, retries + 1):
+            response = self._wait_future(
+                self.plan_client.call_async(request), self.config['timeouts']['planning'],
+                f'approach positioning plan attempt {attempt}')
+            result = response.motion_plan_response
+            if result.error_code.val != MoveItErrorCodes.SUCCESS:
+                last_detail = f'MoveIt code {result.error_code.val}'
+            else:
+                try:
+                    self.review_moveit_trajectory(result.trajectory, self.positions, target)
+                    return result.trajectory
+                except TrajectoryValidationError as error:
+                    last_detail = str(error)
+            self.node.get_logger().warning(
+                f'approach positioning attempt {attempt}/{retries} rejected: {last_detail}')
+        raise TrajectoryValidationError(
+            f'approach positioning plan failed after {retries} attempts: {last_detail}')
 
     def review_moveit_trajectory(self, trajectory, start, target):
         names = list(trajectory.joint_trajectory.joint_names)

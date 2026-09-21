@@ -32,6 +32,7 @@ ik:
   timeout: 0.2
 planning:
   allowed_time: 5.0
+  service_retries: 5
   velocity_scaling: 0.1
   acceleration_scaling: 0.1
 motion:
