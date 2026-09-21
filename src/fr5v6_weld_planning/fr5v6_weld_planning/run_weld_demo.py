@@ -175,8 +175,8 @@ def main():
             'failure_category': failure_category(error),
             'detail': str(error),
             'execute_requested': execute,
-            'followup_motion_suppressed': 'terminal' in str(error).lower()
-                                          or 'suppressed' in str(error).lower(),
+            'followup_motion_suppressed': bool(execute) and (
+                failure_category(error) in {'execution', 'terminal_unknown'}),
             'finished_at': datetime.now(timezone.utc).isoformat(),
         })
     finally:

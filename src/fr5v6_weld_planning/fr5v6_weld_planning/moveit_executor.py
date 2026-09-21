@@ -372,6 +372,7 @@ class WeldMoveItExecutor:
             raise RuntimeError(f'{label} execution failed with code {code}')
         stable_since = None
         deadline = time.monotonic() + 10.0
+        error = math.inf
         while time.monotonic() < deadline:
             rclpy.spin_once(self.node, timeout_sec=0.05)
             if self.positions is None:
@@ -387,4 +388,8 @@ class WeldMoveItExecutor:
                     }
             else:
                 stable_since = None
-        raise TimeoutError(f'{label} final joint state did not settle')
+        feedback_age = (math.inf if self.received_wall is None
+                        else time.monotonic() - self.received_wall)
+        raise TimeoutError(
+            f'{label} final joint state did not settle; last max error '
+            f'{error:.6f} rad, feedback age {feedback_age:.3f} s')
