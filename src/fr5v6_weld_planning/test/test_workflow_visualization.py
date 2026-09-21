@@ -46,8 +46,8 @@ def test_rviz_subscribes_to_transient_local_weld_markers():
     config = yaml.safe_load(rviz_path.read_text(encoding='utf-8'))
     displays = config['Visualization Manager']['Displays']
     marker = next(item for item in displays if item.get('Name') == 'Weld Markers')
-    assert marker['Marker Topic']['Value'] == '/weld_markers'
-    assert marker['Marker Topic']['Durability Policy'] == 'Transient Local'
+    assert marker['Topic']['Value'] == '/weld_markers'
+    assert marker['Topic']['Durability Policy'] == 'Transient Local'
 
 
 def test_world_poses_and_process_speed_follow_configuration(tmp_path):

@@ -29,7 +29,7 @@ Visualization Manager:
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Weld Markers
-      Marker Topic:
+      Topic:
         Depth: 1
         Durability Policy: Transient Local
         History Policy: Keep Last
