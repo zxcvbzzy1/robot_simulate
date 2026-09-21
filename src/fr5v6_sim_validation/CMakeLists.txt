@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.8)
+project(fr5v6_sim_validation)
+find_package(ament_cmake REQUIRED)
+install(PROGRAMS scripts/wait_for_sim scripts/validate_motion DESTINATION lib/${PROJECT_NAME})
+install(FILES scripts/sim_common.py DESTINATION lib/${PROJECT_NAME})
+ament_package()

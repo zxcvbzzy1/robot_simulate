@@ -1,0 +1,170 @@
+solid fr5_t_coupon
+  facet normal 0 0 -1
+    outer loop
+      vertex -0.05 -0.1 -0.01
+      vertex 0.05 0.1 -0.01
+      vertex 0.05 -0.1 -0.01
+    endloop
+  endfacet
+  facet normal 0 0 -1
+    outer loop
+      vertex -0.05 -0.1 -0.01
+      vertex -0.05 0.1 -0.01
+      vertex 0.05 0.1 -0.01
+    endloop
+  endfacet
+  facet normal 1 0 0
+    outer loop
+      vertex 0.05 -0.1 -0.01
+      vertex 0.05 0.1 0
+      vertex 0.05 -0.1 0
+    endloop
+  endfacet
+  facet normal 1 0 0
+    outer loop
+      vertex 0.05 -0.1 -0.01
+      vertex 0.05 0.1 -0.01
+      vertex 0.05 0.1 0
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex 0.05 -0.1 0
+      vertex 0.005 0.1 0
+      vertex 0.005 -0.1 0
+    endloop
+  endfacet
+  facet normal 0 -0 1
+    outer loop
+      vertex 0.05 -0.1 0
+      vertex 0.05 0.1 0
+      vertex 0.005 0.1 0
+    endloop
+  endfacet
+  facet normal 1 0 0
+    outer loop
+      vertex 0.005 -0.1 0
+      vertex 0.005 0.1 0.05
+      vertex 0.005 -0.1 0.05
+    endloop
+  endfacet
+  facet normal 1 0 0
+    outer loop
+      vertex 0.005 -0.1 0
+      vertex 0.005 0.1 0
+      vertex 0.005 0.1 0.05
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex 0.005 -0.1 0.05
+      vertex -0.005 0.1 0.05
+      vertex -0.005 -0.1 0.05
+    endloop
+  endfacet
+  facet normal 0 -0 1
+    outer loop
+      vertex 0.005 -0.1 0.05
+      vertex 0.005 0.1 0.05
+      vertex -0.005 0.1 0.05
+    endloop
+  endfacet
+  facet normal -1 0 0
+    outer loop
+      vertex -0.005 -0.1 0.05
+      vertex -0.005 0.1 0
+      vertex -0.005 -0.1 0
+    endloop
+  endfacet
+  facet normal -1 0 0
+    outer loop
+      vertex -0.005 -0.1 0.05
+      vertex -0.005 0.1 0.05
+      vertex -0.005 0.1 0
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex -0.005 -0.1 0
+      vertex -0.05 0.1 0
+      vertex -0.05 -0.1 0
+    endloop
+  endfacet
+  facet normal 0 -0 1
+    outer loop
+      vertex -0.005 -0.1 0
+      vertex -0.005 0.1 0
+      vertex -0.05 0.1 0
+    endloop
+  endfacet
+  facet normal -1 0 0
+    outer loop
+      vertex -0.05 -0.1 0
+      vertex -0.05 0.1 -0.01
+      vertex -0.05 -0.1 -0.01
+    endloop
+  endfacet
+  facet normal -1 0 0
+    outer loop
+      vertex -0.05 -0.1 0
+      vertex -0.05 0.1 0
+      vertex -0.05 0.1 -0.01
+    endloop
+  endfacet
+  facet normal 0 -1 0
+    outer loop
+      vertex -0.05 -0.1 -0.01
+      vertex 0.05 -0.1 -0.01
+      vertex 0.05 -0.1 0
+    endloop
+  endfacet
+  facet normal 0 -1 0
+    outer loop
+      vertex -0.05 -0.1 -0.01
+      vertex 0.05 -0.1 0
+      vertex -0.05 -0.1 0
+    endloop
+  endfacet
+  facet normal 0 1 0
+    outer loop
+      vertex -0.05 0.1 -0.01
+      vertex 0.05 0.1 0
+      vertex 0.05 0.1 -0.01
+    endloop
+  endfacet
+  facet normal 0 1 0
+    outer loop
+      vertex -0.05 0.1 -0.01
+      vertex -0.05 0.1 0
+      vertex 0.05 0.1 0
+    endloop
+  endfacet
+  facet normal 0 -1 0
+    outer loop
+      vertex -0.005 -0.1 0
+      vertex 0.005 -0.1 0
+      vertex 0.005 -0.1 0.05
+    endloop
+  endfacet
+  facet normal 0 -1 0
+    outer loop
+      vertex -0.005 -0.1 0
+      vertex 0.005 -0.1 0.05
+      vertex -0.005 -0.1 0.05
+    endloop
+  endfacet
+  facet normal 0 1 0
+    outer loop
+      vertex -0.005 0.1 0
+      vertex 0.005 0.1 0.05
+      vertex 0.005 0.1 0
+    endloop
+  endfacet
+  facet normal 0 1 0
+    outer loop
+      vertex -0.005 0.1 0
+      vertex -0.005 0.1 0.05
+      vertex 0.005 0.1 0.05
+    endloop
+  endfacet
+endsolid fr5_t_coupon

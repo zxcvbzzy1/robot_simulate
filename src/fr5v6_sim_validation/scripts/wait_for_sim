@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+import rclpy
+from sim_common import SimNode
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--timeout', type=float, default=120)
+    args, ros_args = parser.parse_known_args()
+    rclpy.init(args=ros_args)
+    node = SimNode('fr5_wait_for_sim')
+    try:
+        node.ready(args.timeout)
+        node.get_logger().info('PASS: controllers active, six joint states fresh, simulation clock advancing')
+        return 0
+    except Exception as exc:
+        node.get_logger().error(str(exc))
+        return 1
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    sys.exit(main())

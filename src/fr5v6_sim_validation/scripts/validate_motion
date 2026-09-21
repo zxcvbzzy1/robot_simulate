@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+"""Simulation-only MoveIt planning/execution and feedback acceptance test."""
+import argparse
+import json
+import math
+import sys
+import time
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from pathlib import Path
+import rclpy
+from rclpy.action import ActionClient
+from ament_index_python.packages import get_package_share_directory
+from moveit_msgs.action import MoveGroup, ExecuteTrajectory
+from moveit_msgs.msg import Constraints, JointConstraint, RobotState, PositionConstraint
+from geometry_msgs.msg import Pose
+from shape_msgs.msg import SolidPrimitive
+from moveit_msgs.srv import GetStateValidity
+from sensor_msgs.msg import JointState
+from sim_common import SimNode, JOINTS
+
+class Validator(SimNode):
+    def __init__(self):
+        super().__init__('fr5_validate_motion')
+        self.plan_client = ActionClient(self, MoveGroup, '/move_action')
+        self.execute_client = ActionClient(self, ExecuteTrajectory, '/execute_trajectory')
+        self.validity = self.create_client(GetStateValidity, '/check_state_validity')
+        self.report = {'started': datetime.now().isoformat(), 'passed': False,
+                       'steps': [], 'execution_requests': 0}
+        urdf = ET.parse(Path(get_package_share_directory('fr5v6_ros2_control')) / 'urdf/fr5v6.urdf')
+        self.limits = {j.attrib['name']: (float(j.find('limit').attrib['lower']),
+                                        float(j.find('limit').attrib['upper']))
+                       for j in urdf.findall('joint') if j.attrib.get('type') == 'revolute'}
+
+    def check_bounds(self, target):
+        for j in JOINTS:
+            value = target[j]
+            lo, hi = self.limits[j]
+            if not math.isfinite(value) or not lo <= value <= hi:
+                raise ValueError(f'{j} target {value} outside URDF limits [{lo}, {hi}]')
+
+    def state(self, positions):
+        state = RobotState()
+        state.joint_state = JointState(name=JOINTS, position=[float(positions[j]) for j in JOINTS])
+        return state
+
+    def valid(self, positions):
+        self.check_bounds(positions)
+        req = GetStateValidity.Request(robot_state=self.state(positions), group_name='fr5v6_group')
+        response = self.wait(self.validity.call_async(req), 10)
+        return response.valid
+
+    def action(self, client, goal, timeout):
+        handle = self.wait(client.send_goal_async(goal), 10)
+        if not handle.accepted:
+            raise RuntimeError('MoveIt action goal rejected')
+        try:
+            return self.wait(handle.get_result_async(), timeout).result
+        except BaseException:
+            try:
+                self.wait(handle.cancel_goal_async(), 3)
+            except Exception:
+                pass
+            raise
+
+    def plan(self, target, unreachable=False):
+        self.check_bounds(target)
+        if not self.fresh():
+            raise RuntimeError('Joint feedback is stale before planning')
+        goal = MoveGroup.Goal()
+        req = goal.request
+        req.group_name = 'fr5v6_group'
+        req.pipeline_id = 'ompl'
+        req.num_planning_attempts = 5
+        req.allowed_planning_time = 5.0
+        req.max_velocity_scaling_factor = 0.1
+        req.max_acceleration_scaling_factor = 0.1
+        req.start_state = self.state(self.positions)
+        constraint = Constraints()
+        for joint in JOINTS:
+            constraint.joint_constraints.append(JointConstraint(
+                joint_name=joint, position=float(target[joint]),
+                tolerance_above=0.001, tolerance_below=0.001, weight=1.0))
+        req.goal_constraints = [constraint]
+        if unreachable:
+            pc = PositionConstraint()
+            pc.header.frame_id = 'world'
+            pc.link_name = 'j6_Link'
+            pc.weight = 1.0
+            pc.constraint_region.primitives = [SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[0.01])]
+            pose = Pose()
+            pose.orientation.w = 1.0
+            pose.position.x = 100.0
+            pose.position.z = 100.0
+            pc.constraint_region.primitive_poses = [pose]
+            req.goal_constraints = [Constraints(position_constraints=[pc])]
+        goal.planning_options.plan_only = True
+        return self.action(self.plan_client, goal, 30)
+
+    def motion(self, name, target):
+        step = {'name': name, 'target': target}
+        self.report['steps'].append(step)
+        self.get_logger().info('Planning ' + name)
+        result = self.plan(target)
+        step['planning_code'] = result.error_code.val
+        if result.error_code.val != 1:
+            raise RuntimeError(f'{name}: planning failed ({result.error_code.val})')
+        trajectory = result.planned_trajectory
+        jt = trajectory.joint_trajectory
+        if set(jt.joint_names) != set(JOINTS) or not jt.points:
+            raise RuntimeError('Planned trajectory does not contain all six joints')
+        endpoint = dict(zip(jt.joint_names, jt.points[-1].positions))
+        if max(abs(endpoint[j] - target[j]) for j in JOINTS) > 0.02:
+            raise RuntimeError('Planner endpoint differs from requested target; execution suppressed')
+        previous = -1.0
+        for point in jt.points:
+            duration = point.time_from_start.sec + point.time_from_start.nanosec * 1e-9
+            if duration <= previous or len(point.positions) != 6 or not all(map(math.isfinite, point.positions)):
+                raise RuntimeError('Invalid trajectory time or positions')
+            self.check_bounds(dict(zip(jt.joint_names, point.positions)))
+            previous = duration
+        if duration <= 0:
+            raise RuntimeError('Trajectory has zero duration')
+        step['trajectory_seconds'] = duration
+        goal = ExecuteTrajectory.Goal(trajectory=trajectory, controller_names=['joint_trajectory_controller'])
+        self.report['execution_requests'] += 1
+        handle = self.wait(self.execute_client.send_goal_async(goal), 10)
+        if not handle.accepted:
+            raise RuntimeError('Execution rejected')
+        future = handle.get_result_async()
+        started = self.get_clock().now().nanoseconds * 1e-9
+        wall_deadline = time.monotonic() + (duration + 10) * 10
+        stable = None
+        last_sequence = self.sequence
+        try:
+            while rclpy.ok():
+                self.spin()
+                now = self.get_clock().now().nanoseconds * 1e-9
+                if not self.fresh():
+                    raise RuntimeError('Joint feedback or simulation clock is stale during execution')
+                if now - started > duration + 10 or time.monotonic() > wall_deadline:
+                    raise TimeoutError('Execution/settling deadline exceeded')
+                if future.done():
+                    step['execution_code'] = future.result().result.error_code.val
+                    if step['execution_code'] != 1:
+                        raise RuntimeError(f'Execution failed ({step["execution_code"]})')
+                if self.sequence != last_sequence:
+                    last_sequence = self.sequence
+                    errors = {j: abs(self.positions[j] - target[j]) for j in JOINTS}
+                    if max(errors.values()) <= 0.02:
+                        stable = self.stamp if stable is None else stable
+                    else:
+                        stable = None
+                    if future.done() and stable is not None and self.stamp - stable >= 0.5:
+                        step.update({'max_error_rad': max(errors.values()), 'errors_rad': errors, 'passed': True})
+                        self.get_logger().info(f'PASS {name}: max joint error {max(errors.values()):.6f} rad')
+                        return
+        except BaseException:
+            if not future.done():
+                try:
+                    self.wait(handle.cancel_goal_async(), 3)
+                except Exception:
+                    pass
+            raise
+
+    def run(self, args):
+        self.ready(args.timeout)
+        end = time.monotonic() + args.timeout
+        while not (self.plan_client.server_is_ready() and self.execute_client.server_is_ready() and self.validity.service_is_ready()):
+            if time.monotonic() > end:
+                raise TimeoutError('MoveIt planning/execution/state validity interfaces not ready')
+            self.spin()
+        # Reject requests using MoveIt's planner; never dispatch them for execution.
+        if args.negative_only:
+            target = dict(self.positions)
+            target['j1'] = 100.0
+            before = dict(self.positions)
+            try:
+                self.plan(target)
+            except ValueError as exc:
+                self.report['bounds_rejection'] = str(exc)
+            else:
+                raise RuntimeError('Out-of-bounds target was not rejected')
+            result = self.plan(dict(self.positions), unreachable=True)
+            self.report['invalid_goal_code'] = result.error_code.val
+            if result.error_code.val == 1:
+                raise RuntimeError('Unreachable Cartesian target was unexpectedly planned')
+            end = time.monotonic() + 1
+            while time.monotonic() < end:
+                self.spin()
+            self.report['invalid_goal_drift_rad'] = max(abs(self.positions[j] - before[j]) for j in JOINTS)
+            if self.report['invalid_goal_drift_rad'] > 0.02:
+                raise RuntimeError('Robot moved during rejected-goal test')
+            self.report['negative_test_passed'] = True
+            # Nonzero exit means the requested invalid motion was rejected.
+            return 2
+        srdf = ET.parse(Path(get_package_share_directory('fr5v6_moveit_config')) / 'config/fr5v6.srdf')
+        named = {s.attrib['name']: {j.attrib['name']: float(j.attrib['value']) for j in s.findall('joint')}
+                 for s in srdf.findall('group_state') if s.attrib['group'] == 'fr5v6_group'}
+        self.report['named_state_validity'] = {name: self.valid(p) for name, p in named.items()}
+        home = named['home']
+        if not self.report['named_state_validity']['home']:
+            raise RuntimeError('Existing home posture is invalid; inspect model before motion')
+        small = dict(self.positions)
+        small['j1'] += 0.15
+        if not self.valid(small):
+            raise RuntimeError('Small initial test posture is invalid')
+        self.motion('small_joint_test', small)
+        self.motion('home', home)
+        target = named['ready']
+        if not self.report['named_state_validity']['ready']:
+            target = dict(home)
+            target['j1'] = 0.3
+            if not self.valid(target):
+                raise RuntimeError('Fallback test posture is invalid')
+            self.report['fallback_posture'] = target
+        for index in range(args.cycles):
+            self.motion(f'cycle_{index+1}_ready', target)
+            self.motion(f'cycle_{index+1}_home', home)
+        self.report['passed'] = True
+        return 0
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cycles', type=int, default=3)
+    parser.add_argument('--timeout', type=float, default=120)
+    parser.add_argument('--negative-only', action='store_true')
+    parser.add_argument(
+        '--report-dir',
+        default='/home/gsx/FR_Planning_Benchmark_ws/benchmark_results/baseline_validation',
+    )
+    args, ros_args = parser.parse_known_args()
+    if args.cycles < 1 or args.timeout <= 0:
+        parser.error('cycles and timeout must be positive')
+    rclpy.init(args=ros_args)
+    node = Validator()
+    code = 1
+    try:
+        code = node.run(args)
+    except Exception as exc:
+        node.report['error'] = str(exc)
+        node.get_logger().error(str(exc))
+    finally:
+        directory = Path(args.report_dir)
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / (datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '.json')
+        node.report.update({'exit_code': code, 'finished': datetime.now().isoformat()})
+        path.write_text(json.dumps(node.report, indent=2, ensure_ascii=False) + '\n')
+        print('Report:', path, flush=True)
+        node.destroy_node()
+        rclpy.shutdown()
+    return code
+
+if __name__ == '__main__':
+    sys.exit(main())

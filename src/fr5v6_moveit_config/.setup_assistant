@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: fr5v6_ros2_control
+    relative_path: urdf/fr5v6.urdf
+  srdf:
+    relative_path: config/fr5v6.srdf
+  package_settings:
+    author_name: gsx
+    author_email: ""
+    generated_timestamp: 1789444325

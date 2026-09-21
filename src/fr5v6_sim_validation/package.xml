@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fr5v6_sim_validation</name>
+  <version>0.1.0</version>
+  <description>Readiness and MoveIt trajectory validation for FR5 V6 simulation.</description>
+  <maintainer email="gsx@localhost.local">gsx</maintainer>
+  <license>BSD-3-Clause</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>fr5v6_ros2_control</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

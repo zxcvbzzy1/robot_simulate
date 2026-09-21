@@ -1,0 +1,56 @@
+schema_version: 1
+units:
+  length: m
+  angle: rad
+workpiece:
+  mesh: meshes/workpiece.stl
+  mesh_scale: 1.0
+  pose_in_world:
+    xyz: [-0.55, 0.0, 0.25]
+    rpy: [0.0, 0.0, 0.0]
+extraction:
+  min_dihedral_deg: 45.0
+  max_dihedral_deg: 135.0
+  min_seam_length: 0.15
+  max_chain_turn_deg: 20.0
+  prefer_concave: true
+  candidate_index: null
+path:
+  sample_spacing: 0.005
+  approach_distance: 0.05
+  retreat_distance: 0.05
+tcp:
+  parent_frame: tool0
+  child_frame: weld_tcp
+  xyz: [0.0, 0.0, 0.15]
+  rpy: [0.0, 0.0, 0.0]
+  TEMPORARY_SIM_ONLY: true
+robot:
+  group: fr5v6_group
+  joints: [j1, j2, j3, j4, j5, j6]
+ik:
+  timeout: 0.2
+planning:
+  allowed_time: 5.0
+  velocity_scaling: 0.1
+  acceleration_scaling: 0.1
+motion:
+  speed_mps:
+    approach: 0.03
+    seam: 0.01
+    retreat: 0.03
+  max_joint_velocity: [0.315, 0.315, 0.315, 0.32, 0.32, 0.32]
+  max_joint_acceleration: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  minimum_dt: 0.02
+safety:
+  max_joint_jump: 0.5
+  densify_max_joint_step: 0.02
+  tcp_position_tolerance: 0.002
+  tcp_orientation_tolerance: 0.034906585
+  final_joint_tolerance: 0.02
+  feedback_max_age: 1.0
+timeouts:
+  startup: 120.0
+  service: 10.0
+  planning: 15.0
+  execution_slack: 10.0
