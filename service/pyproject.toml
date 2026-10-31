@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fr5-weld-service"
+version = "0.1.0"
+description = "FR5 weld extraction and MoveIt planning API"
+requires-python = ">=3.12"
+dependencies = ["fastapi", "uvicorn", "pydantic>=2", "python-multipart", "httpx", "numpy", "scipy", "PyYAML", "matplotlib", "trimesh"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["weld_service*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

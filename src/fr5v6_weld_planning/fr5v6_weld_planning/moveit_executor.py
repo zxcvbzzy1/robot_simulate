@@ -31,6 +31,20 @@ class ValidationResult:
     maximum_jump: float
 
 
+def validate_ready_state(actual, expected, tolerance):
+    actual = np.asarray(actual, dtype=float)
+    expected = np.asarray(expected, dtype=float)
+    if (actual.shape != expected.shape or actual.ndim != 1
+            or not np.isfinite(actual).all() or not np.isfinite(expected).all()
+            or not math.isfinite(tolerance) or tolerance <= 0):
+        raise TrajectoryValidationError('initial pose feedback is invalid')
+    maximum_error = float(np.max(np.abs(actual - expected)))
+    if maximum_error > tolerance:
+        raise TrajectoryValidationError(
+            f'initial pose feedback mismatch: max joint error {maximum_error:.4f} rad '
+            f'exceeds {tolerance:.4f} rad')
+
+
 def _duration(seconds):
     seconds = float(seconds)
     whole = int(math.floor(seconds))
@@ -190,8 +204,14 @@ class WeldMoveItExecutor:
         result.is_diff = True
         return result
 
-    def solve_ik(self, world_poses, segments):
-        seed = list(self.positions)
+    def ensure_fresh_feedback(self):
+        rclpy.spin_once(self.node, timeout_sec=0.05)
+        if (self.positions is None or self.received_wall is None or
+                time.monotonic() - self.received_wall > self.config['safety']['feedback_max_age']):
+            raise TrajectoryValidationError('stale joint feedback; follow-up motion suppressed')
+
+    def solve_ik(self, world_poses, segments, seed=None):
+        seed = list(self.positions if seed is None else seed)
         states = []
         timeout = float(self.config['timeouts']['service'])
         for index, ((position, quaternion), segment) in enumerate(zip(world_poses, segments)):
@@ -240,7 +260,8 @@ class WeldMoveItExecutor:
                 raise TrajectoryValidationError(f'collision at densified state {index}')
         return len(dense)
 
-    def plan_to(self, target):
+    def plan_to(self, target, start=None):
+        start = list(self.positions if start is None else start)
         request = GetMotionPlan.Request()
         motion = request.motion_plan_request
         motion.group_name = self.group
@@ -250,7 +271,7 @@ class WeldMoveItExecutor:
         motion.allowed_planning_time = float(self.config['planning']['allowed_time'])
         motion.max_velocity_scaling_factor = float(self.config['planning']['velocity_scaling'])
         motion.max_acceleration_scaling_factor = float(self.config['planning']['acceleration_scaling'])
-        motion.start_state = self.robot_state(self.positions)
+        motion.start_state = self.robot_state(start)
         constraints = Constraints()
         constraints.joint_constraints = [
             JointConstraint(joint_name=name, position=float(value), tolerance_above=0.001,
@@ -271,7 +292,7 @@ class WeldMoveItExecutor:
                 last_detail = f'MoveIt code {result.error_code.val}'
             else:
                 try:
-                    self.review_moveit_trajectory(result.trajectory, self.positions, target)
+                    self.review_moveit_trajectory(result.trajectory, start, target)
                     return result.trajectory
                 except TrajectoryValidationError as error:
                     last_detail = str(error)
@@ -348,6 +369,7 @@ class WeldMoveItExecutor:
         }
 
     def execute(self, trajectory, target, label):
+        self.ensure_fresh_feedback()
         duration = trajectory.joint_trajectory.points[-1].time_from_start
         expected_duration = duration.sec + duration.nanosec * 1e-9
         future = self.execute_client.send_goal_async(ExecuteTrajectory.Goal(
@@ -367,6 +389,8 @@ class WeldMoveItExecutor:
         if not terminal_allows_next(terminal.status):
             raise RuntimeError(
                 f'{label} returned non-terminal status {terminal.status}; follow-up motion suppressed')
+        if terminal.status != GoalStatus.STATUS_SUCCEEDED:
+            raise RuntimeError(f'{label} {terminal_status_name(terminal.status)}; follow-up motion suppressed')
         if terminal.result is None or terminal.result.error_code.val != MoveItErrorCodes.SUCCESS:
             code = None if terminal.result is None else terminal.result.error_code.val
             raise RuntimeError(f'{label} execution failed with code {code}')
@@ -375,7 +399,9 @@ class WeldMoveItExecutor:
         error = math.inf
         while time.monotonic() < deadline:
             rclpy.spin_once(self.node, timeout_sec=0.05)
-            if self.positions is None:
+            if (self.positions is None or self.received_wall is None or
+                    time.monotonic() - self.received_wall > self.config['safety']['feedback_max_age']):
+                stable_since = None
                 continue
             error = max(abs(a - b) for a, b in zip(self.positions, target))
             if error <= self.config['safety']['final_joint_tolerance']:

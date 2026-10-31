@@ -1,0 +1,1231 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FR5 焊缝规划服务",
+    "description": "STL / 点云统一提取，MoveIt 规划及前端兼容回放。远程文件先上传，再将返回的服务端路径传给任务接口。",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/files": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Upload File",
+        "description": "Upload bytes first; use the returned file_path in the existing JSON API.",
+        "operationId": "upload_file_api_v1_files_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_file_api_v1_files_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedFile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files/{file_id}": {
+      "delete": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Delete Upload",
+        "description": "Delete only an owned upload. Call after the consuming job has finished.",
+        "operationId": "delete_upload_api_v1_files__file_id__delete",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/files/{kind}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Download Result",
+        "description": "Download a successful job's output; never accept arbitrary file paths.",
+        "operationId": "download_result_api_v1_jobs__job_id__files__kind__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "trajectory",
+                "csv",
+                "image"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Ready",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/extractions/point-cloud": {
+      "post": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Point Cloud",
+        "operationId": "point_cloud_api_v1_extractions_point_cloud_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PointCloudRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/extractions/stl": {
+      "post": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Stl",
+        "operationId": "stl_api_v1_extractions_stl_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/STLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulations": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Simulation",
+        "operationId": "simulation_api_v1_simulations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Job",
+        "operationId": "job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/cancel": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_api_v1_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulations/{simulation_id}": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Snapshot",
+        "operationId": "snapshot_api_v1_simulations__simulation_id__get",
+        "parameters": [
+          {
+            "name": "simulation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Simulation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_upload_file_api_v1_files_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_file_api_v1_files_post"
+      },
+      "ExtractionResult": {
+        "properties": {
+          "trajectory_path": {
+            "type": "string",
+            "title": "Trajectory Path"
+          },
+          "csv_path": {
+            "type": "string",
+            "title": "Csv Path"
+          },
+          "image_path": {
+            "type": "string",
+            "title": "Image Path"
+          },
+          "frame": {
+            "type": "string",
+            "const": "robot_base",
+            "title": "Frame"
+          },
+          "seam_count": {
+            "type": "integer",
+            "title": "Seam Count"
+          },
+          "executable_seam_count": {
+            "type": "integer",
+            "title": "Executable Seam Count"
+          },
+          "point_count": {
+            "type": "integer",
+            "title": "Point Count"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "seams": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Seams"
+          },
+          "statistics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Statistics"
+          },
+          "intersection_quality": {
+            "title": "Intersection Quality"
+          },
+          "inline_artifact_arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inline Artifact Arguments"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "trajectory_path",
+          "csv_path",
+          "image_path",
+          "frame",
+          "seam_count",
+          "executable_seam_count",
+          "point_count",
+          "warnings",
+          "seams",
+          "statistics",
+          "intersection_quality",
+          "inline_artifact_arguments"
+        ],
+        "title": "ExtractionResult"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "stl",
+              "point-cloud",
+              "simulation"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionResult"
+              },
+              {
+                "$ref": "#/components/schemas/SimulationArtifact"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created": {
+            "type": "number",
+            "title": "Created"
+          },
+          "updated": {
+            "type": "number",
+            "title": "Updated"
+          },
+          "status_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Url"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "result",
+          "error",
+          "created",
+          "updated"
+        ],
+        "title": "JobResponse"
+      },
+      "PointCloudRequest": {
+        "properties": {
+          "point_cloud_path": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Point Cloud Path"
+          },
+          "input_frame": {
+            "type": "string",
+            "enum": [
+              "robot_base",
+              "camera"
+            ],
+            "title": "Input Frame"
+          },
+          "model_type": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "three_plane",
+              "h_section",
+              "square_tube"
+            ],
+            "title": "Model Type",
+            "default": "auto"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "mm",
+              "m"
+            ],
+            "title": "Unit",
+            "default": "mm"
+          },
+          "camera_to_base": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array",
+                  "maxItems": 4,
+                  "minItems": 4
+                },
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Camera To Base"
+          },
+          "camera_position_base": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Camera Position Base"
+          },
+          "h_width_mm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "H Width Mm"
+          },
+          "tube_width_mm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tube Width Mm"
+          },
+          "max_planes": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Planes",
+            "default": 20
+          },
+          "min_seam_length_mm": {
+            "type": "number",
+            "minimum": 3.0,
+            "title": "Min Seam Length Mm",
+            "default": 3
+          },
+          "max_gap_mm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Gap Mm"
+          },
+          "voxel_size_mm": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Voxel Size Mm",
+            "default": 1
+          },
+          "sample_step_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Sample Step Mm",
+            "default": 2
+          },
+          "posture_width_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Posture Width Mm",
+            "default": 5
+          },
+          "approach_distance_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Approach Distance Mm",
+            "default": 10
+          },
+          "retract_distance_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Retract Distance Mm",
+            "default": 10
+          },
+          "plane_distance_threshold_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Plane Distance Threshold Mm",
+            "default": 2
+          },
+          "ransac_iterations": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Ransac Iterations",
+            "default": 100
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 4294967295.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "default": 0
+          },
+          "tcp_rotation_offset_deg": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Tcp Rotation Offset Deg"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "point_cloud_path",
+          "input_frame"
+        ],
+        "title": "PointCloudRequest"
+      },
+      "STLRequest": {
+        "properties": {
+          "stl_path": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Stl Path"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "mm",
+              "m"
+            ],
+            "title": "Unit"
+          },
+          "pose_in_base": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "minItems": 6,
+            "title": "Pose In Base"
+          },
+          "seam_indices": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer",
+                  "minimum": 0.0
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seam Indices"
+          },
+          "min_seam_length_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Min Seam Length Mm",
+            "default": 3
+          },
+          "sample_step_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Sample Step Mm",
+            "default": 2
+          },
+          "approach_distance_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Approach Distance Mm",
+            "default": 10
+          },
+          "retract_distance_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Retract Distance Mm",
+            "default": 10
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stl_path",
+          "unit",
+          "pose_in_base"
+        ],
+        "title": "STLRequest"
+      },
+      "SimulationArtifact": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "robot_simulation",
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "summary": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Summary"
+          },
+          "tcp_calibrated": {
+            "type": "boolean",
+            "title": "Tcp Calibrated"
+          },
+          "editable": {
+            "type": "boolean",
+            "const": false,
+            "title": "Editable"
+          },
+          "mime_type": {
+            "type": "string",
+            "const": "application/json",
+            "title": "Mime Type"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "simulation_id",
+          "url",
+          "run_id",
+          "summary",
+          "tcp_calibrated",
+          "editable",
+          "mime_type"
+        ],
+        "title": "SimulationArtifact"
+      },
+      "SimulationRequest": {
+        "properties": {
+          "trajectory_path": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Trajectory Path"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Run Id"
+          },
+          "seam_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seam Id"
+          },
+          "tcp_offset_pose": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array",
+                "maxItems": 6,
+                "minItems": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tcp Offset Pose"
+          },
+          "speed_mm_s": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Speed Mm S",
+            "default": 20
+          },
+          "workpiece": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Workpiece"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trajectory_path",
+          "run_id"
+        ],
+        "title": "SimulationRequest"
+      },
+      "SimulationSnapshot": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "robot": {
+            "type": "string",
+            "title": "Robot"
+          },
+          "joint_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Joint Names"
+          },
+          "joint_units": {
+            "type": "string",
+            "const": "radian",
+            "title": "Joint Units"
+          },
+          "frame": {
+            "type": "string",
+            "const": "robot_base",
+            "title": "Frame"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Units"
+          },
+          "tcp_offset_pose": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "minItems": 6,
+            "title": "Tcp Offset Pose"
+          },
+          "tcp_calibrated": {
+            "type": "boolean",
+            "title": "Tcp Calibrated"
+          },
+          "speed_mm_s": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Speed Mm S"
+          },
+          "source_path": {
+            "type": "string",
+            "title": "Source Path"
+          },
+          "source_sha256": {
+            "type": "string",
+            "title": "Source Sha256"
+          },
+          "input_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Snapshot"
+          },
+          "summary": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Summary"
+          },
+          "seams": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Seams"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "simulation_id",
+          "run_id",
+          "robot",
+          "joint_names",
+          "joint_units",
+          "frame",
+          "units",
+          "tcp_offset_pose",
+          "tcp_calibrated",
+          "speed_mm_s",
+          "source_path",
+          "source_sha256",
+          "input_snapshot",
+          "summary",
+          "seams"
+        ],
+        "title": "SimulationSnapshot"
+      },
+      "UploadedFile": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "title": "File Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "file_id",
+          "filename",
+          "file_path",
+          "size_bytes",
+          "sha256"
+        ],
+        "title": "UploadedFile"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Workpiece": {
+        "properties": {
+          "stl_path": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Stl Path"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "mm",
+              "m"
+            ],
+            "title": "Unit"
+          },
+          "pose_in_base": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "minItems": 6,
+            "title": "Pose In Base"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stl_path",
+          "unit",
+          "pose_in_base"
+        ],
+        "title": "Workpiece"
+      }
+    }
+  }
+}

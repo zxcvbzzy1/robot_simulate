@@ -25,5 +25,9 @@ setup(
     entry_points={'console_scripts': [
         'extract_seam = fr5v6_weld_planning.extract_seam:main',
         'run_weld_demo = fr5v6_weld_planning.run_weld_demo:main',
+        'weld_task_manager = fr5v6_weld_planning.run_weld_demo:main',
+        'weld_seam_detector = fr5v6_weld_planning.algorithm_nodes:detector_main',
+        'weld_path_generator = fr5v6_weld_planning.algorithm_nodes:generator_main',
+        'external_weld_task_manager = fr5v6_weld_planning.external_runner:main',
     ]},
 )

@@ -1,0 +1,20 @@
+# Hypothetical placement for Gazebo only, NOT camera calibration.
+schema_version: 1
+path_file: /home/gsx/stl/external_camera_path.csv
+frame_id: camera_frame
+position_unit: m
+orientation_format: quaternion_xyzw
+tcp_frame: weld_tcp
+simulation_only: true
+calibration_status: SIMULATION_ASSUMPTION
+robot_execution_ready: false
+scene_mode: robot_only
+camera_to_world:
+  xyz: [-0.41041062555380586, -0.06794792106506266, 0.06086502975714636]
+  rpy_deg: [38.955458207320596, -5.459388521769289, -98.43340555245497]
+path:
+  generate_approach_retreat: true
+  approach_distance_m: 0.05
+  retreat_distance_m: 0.05
+  sample_spacing_m: 0.005
+  seam_speed_mps: 0.01

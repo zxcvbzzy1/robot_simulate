@@ -1,0 +1,9 @@
+# Local/shared-filesystem API. job_id is SHA256 of the immutable config file.
+string job_id
+string config_file
+---
+bool success
+string error
+string job_id
+string mesh_sha256
+SeamCandidate[] candidates

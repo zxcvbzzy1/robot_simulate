@@ -1,0 +1,26 @@
+{
+  "tool_baseline": "b817fd857910736d5903c277c4d4568872e6e144",
+  "platform": "aarch64",
+  "api_python": "3.12.14",
+  "base_image": {
+    "reference": "ros:jazzy-ros-base-noble",
+    "id": "sha256:103b6c417973394659af6804d4917cd489b91e5ed22eb7bef263025a3bed2410",
+    "repo_digests": [
+      "ros@sha256:103b6c417973394659af6804d4917cd489b91e5ed22eb7bef263025a3bed2410"
+    ]
+  },
+  "planner_image": {
+    "reference": "fr5-weld-planner:jazzy",
+    "id": "sha256:40691977b7f2616eda131fcf227461b5e45b425fa0b84df095ace6115264890c",
+    "repo_digests": [
+      "fr5-weld-planner@sha256:40691977b7f2616eda131fcf227461b5e45b425fa0b84df095ace6115264890c"
+    ]
+  },
+  "deployment": {
+    "api_url": "http://127.0.0.1:18800",
+    "planner_url": "http://127.0.0.1:18801",
+    "api_bind": "0.0.0.0:18800",
+    "planner_bind": "0.0.0.0:18801",
+    "external_api_url": "http://192.168.33.99:18800"
+  }
+}

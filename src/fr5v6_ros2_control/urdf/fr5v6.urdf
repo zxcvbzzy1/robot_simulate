@@ -241,7 +241,7 @@
   <!-- TEMPORARY_SIM_ONLY: zero-offset TCP; replace with calibrated torch data before real use. -->
   <link name="weld_tcp"/>
   <joint name="tool0_to_weld_tcp" type="fixed">
-    <origin xyz="0.0 0.0 0.15" rpy="0.0 0.0 0.0"/>
+    <origin xyz="0.0 0.0 0.2" rpy="0.0 0.0 0.0"/>
     <parent link="tool0"/>
     <child link="weld_tcp"/>
   </joint>
@@ -252,12 +252,12 @@
     <hardware>
       <plugin>gz_ros2_control/GazeboSimSystem</plugin>
     </hardware>
-    <joint name="j1"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
-    <joint name="j2"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
-    <joint name="j3"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
-    <joint name="j4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
-    <joint name="j5"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
-    <joint name="j6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+    <joint name="j1"><command_interface name="position"/><state_interface name="position"><param name="initial_value">0.0</param></state_interface><state_interface name="velocity"/></joint>
+    <joint name="j2"><command_interface name="position"/><state_interface name="position"><param name="initial_value">-2.0943951023931953</param></state_interface><state_interface name="velocity"/></joint>
+    <joint name="j3"><command_interface name="position"/><state_interface name="position"><param name="initial_value">2.0943951023931953</param></state_interface><state_interface name="velocity"/></joint>
+    <joint name="j4"><command_interface name="position"/><state_interface name="position"><param name="initial_value">-1.5707963267948966</param></state_interface><state_interface name="velocity"/></joint>
+    <joint name="j5"><command_interface name="position"/><state_interface name="position"><param name="initial_value">-1.5707963267948966</param></state_interface><state_interface name="velocity"/></joint>
+    <joint name="j6"><command_interface name="position"/><state_interface name="position"><param name="initial_value">0.0</param></state_interface><state_interface name="velocity"/></joint>
   </ros2_control>
 
   <gazebo>

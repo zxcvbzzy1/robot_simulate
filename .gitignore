@@ -6,4 +6,8 @@ output/
 .pytest_cache/
 __pycache__/
 *.pyc
+*.egg-info/
+.DS_Store
 .superpowers/
+service/tests/
+src/fr5v6_weld_planning/test/

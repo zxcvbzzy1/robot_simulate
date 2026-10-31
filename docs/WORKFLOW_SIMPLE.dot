@@ -1,0 +1,28 @@
+digraph WeldWorkflow {
+  graph [rankdir=TB, bgcolor="white", pad=0.22, nodesep=0.25, ranksep=0.30,
+         fontname="Noto Sans CJK SC", fontsize=19,
+         label="FR5 V6 焊缝规划与执行流程", labelloc=t, labeljust=c];
+  node [shape=box, style="filled", fillcolor="#F8FAFC", color="#64748B",
+        penwidth=1.2, fontname="Noto Sans CJK SC", fontsize=13,
+        margin="0.20,0.14", width=4.5, height=0.76];
+  edge [color="#64748B", penwidth=1.35, arrowsize=0.7];
+
+  input [label="①  工件模型输入\lSTL 文件 + 单位 + 工件位姿\l"];
+  geometry [label="②  焊缝识别与轨迹生成\l识别候选焊缝，生成 TCP 路径\l"];
+  preview [color="#2563EB", fillcolor="#EFF6FF", penwidth=2,
+           label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2" WIDTH="296">
+             <TR><TD ALIGN="LEFT"><B>③  第一阶段：预规划与检查</B></TD></TR>
+             <TR><TD ALIGN="LEFT"><FONT COLOR="#1D4ED8"><B>execute:=false</B></FONT></TD></TR>
+             <TR><TD ALIGN="LEFT">IK / 碰撞检查 + RViz 轨迹预览</TD></TR>
+           </TABLE>>];
+  confirm [label="④  人工确认规划结果\l核对焊缝与轨迹，关闭本轮仿真\l"];
+  execute [color="#059669", fillcolor="#ECFDF5", penwidth=2,
+           label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2" WIDTH="296">
+             <TR><TD ALIGN="LEFT"><B>⑤  第二阶段：Gazebo 仿真执行</B></TD></TR>
+             <TR><TD ALIGN="LEFT"><FONT COLOR="#047857"><B>execute:=true</B></FONT></TD></TR>
+             <TR><TD ALIGN="LEFT">重新规划检查通过后，依次执行各焊缝</TD></TR>
+           </TABLE>>];
+  result [label="⑥  执行完成与结果输出\l统计完成焊缝，保存轨迹与执行结果\l"];
+
+  input -> geometry -> preview -> confirm -> execute -> result;
+}

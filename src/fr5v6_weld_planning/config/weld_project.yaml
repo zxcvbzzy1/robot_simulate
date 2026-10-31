@@ -22,12 +22,21 @@ path:
 tcp:
   parent_frame: tool0
   child_frame: weld_tcp
-  xyz: [0.0, 0.0, 0.15]
+  # Simulation-only TCP: extended 50 mm along tool0 local +Z (150 -> 200 mm).
+  xyz: [0.0, 0.0, 0.20]
   rpy: [0.0, 0.0, 0.0]
   TEMPORARY_SIM_ONLY: true
 robot:
   group: fr5v6_group
   joints: [j1, j2, j3, j4, j5, j6]
+  # User-selected simulation startup pose: [0, -120, 120, -90, -90, 0] degrees.
+  ready_joint_positions:
+    j1: 0.0
+    j2: -2.0943951023931953
+    j3: 2.0943951023931953
+    j4: -1.5707963267948966
+    j5: -1.5707963267948966
+    j6: 0.0
 ik:
   timeout: 0.2
 planning:
@@ -44,6 +53,7 @@ motion:
   max_joint_acceleration: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   minimum_dt: 0.02
 safety:
+  initial_joint_tolerance: 0.03
   max_joint_jump: 0.5
   densify_max_joint_step: 0.02
   tcp_position_tolerance: 0.002

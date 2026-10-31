@@ -28,14 +28,14 @@ def _marker(namespace, marker_id, marker_type, frame='workpiece_frame'):
     return marker
 
 
-def build_markers(candidates, selected, samples, path, mesh_uri, workpiece_pose):
+def build_markers(candidates, selected, samples, path, mesh_uri, workpiece_pose, mesh_scale=1.0):
     markers = []
     workpiece = _marker('workpiece', 0, Marker.MESH_RESOURCE, 'world')
     workpiece.mesh_resource = mesh_uri
     workpiece.mesh_use_embedded_materials = False
     workpiece.color = _color(0.55, 0.55, 0.62, 0.65)
     workpiece.pose = pose_message(workpiece_pose)
-    workpiece.scale.x = workpiece.scale.y = workpiece.scale.z = 1.0
+    workpiece.scale.x = workpiece.scale.y = workpiece.scale.z = float(mesh_scale)
     markers.append(workpiece)
     for index, candidate in enumerate(candidates):
         marker = _marker('candidate_seams', index, Marker.LINE_STRIP)
@@ -72,6 +72,27 @@ def build_markers(candidates, selected, samples, path, mesh_uri, workpiece_pose)
         marker.color = color
         marker.points = [_point(item.position) for item in path if item.segment == segment]
         markers.append(marker)
+    return MarkerArray(markers=markers)
+
+
+def build_job_markers(prepared, mesh_uri, pose, mesh_scale):
+    markers = [Marker(action=Marker.DELETEALL)]
+    for index, item in enumerate(prepared):
+        layers = build_markers(item.candidates, item.selected, item.samples, item.path,
+                               mesh_uri, pose, mesh_scale)
+        for marker in layers.markers:
+            if marker.ns in ('workpiece', 'candidate_seams'):
+                if index == 0:
+                    markers.append(marker)
+            else:
+                marker.ns = item.selected.name + '/' + marker.ns
+                markers.append(marker)
+        label = _marker('seam_labels', index, Marker.TEXT_VIEW_FACING)
+        label.text = f'{index + 1}: {item.selected.name}'
+        label.pose.position = _point(item.selected.points[0] + [0, 0, 0.025])
+        label.scale.z = 0.018
+        label.color = _color(1, 1, 1)
+        markers.append(label)
     return MarkerArray(markers=markers)
 
 

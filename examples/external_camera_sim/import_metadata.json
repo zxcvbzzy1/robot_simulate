@@ -1,0 +1,27 @@
+{
+  "config_sha256": "c767f5fb7c93409b66b6075621ece0fc25ac88b3182d6cbb122a29eeab583feb",
+  "path_sha256": "a1f52915dde698606551d52e5108fb7869e524bc3b8bacb1cd97a07e75ab80b1",
+  "source_frame": "camera_frame",
+  "normalized_frame": "world",
+  "position_unit": "m",
+  "path_source": "/home/gsx/stl/external_camera_path.csv",
+  "input_point_count": 116,
+  "camera_to_world": {
+    "xyz": [
+      -0.41041062555380586,
+      -0.06794792106506266,
+      0.06086502975714636
+    ],
+    "rpy_deg": [
+      38.955458207320596,
+      -5.459388521769289,
+      -98.43340555245497
+    ]
+  },
+  "calibration_status": "SIMULATION_ASSUMPTION",
+  "simulation_only": true,
+  "source": "external_csv",
+  "workpiece_collision_geometry_present": false,
+  "motion_validation": "NOT_RUN: simulator blocked by sandbox sockets; installation approval timed out",
+  "path_point_count": 136
+}

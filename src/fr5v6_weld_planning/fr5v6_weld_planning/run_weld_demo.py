@@ -15,13 +15,17 @@ from .config import ConfigError, load_config
 from .mesh_loader import MeshError
 from .moveit_executor import (
     TrajectoryValidationError, WeldMoveItExecutor, build_robot_trajectory,
-    time_parameterize,
+    time_parameterize, validate_ready_state,
 )
 from .output_writer import write_outputs
 from .scene_manager import SceneSyncError, WorkpieceSynchronizer
 from .seam_extractor import SeamExtractionError
 from .visualization import WeldVisualization, build_markers
-from .workflow import prepare_geometry, process_segment_dts, world_path_poses
+from .workflow import process_segment_dts, world_path_poses
+from .pipeline_client import PipelineError, prepare_via_nodes
+from .batch import JobFailure, run_batch
+from .output_writer import write_job_outputs
+from .visualization import build_job_markers
 
 
 def _sha256(path):
@@ -51,6 +55,8 @@ def _write_result(path, data):
 
 def failure_category(error):
     message = str(error).lower()
+    if isinstance(error, PipelineError):
+        return 'algorithm_pipeline'
     if isinstance(error, ConfigError):
         return 'configuration'
     if isinstance(error, MeshError):
@@ -63,6 +69,8 @@ def failure_category(error):
         pose_words = ('normal', 'quaternion', 'tangent', 'orientation', 'zero or cancelling')
         return 'pose' if any(word in message for word in pose_words) else 'candidate'
     if isinstance(error, TrajectoryValidationError):
+        if 'initial pose' in message:
+            return 'initial_pose'
         if 'ik ' in message or message.startswith('ik'):
             return 'ik'
         if 'limit' in message or 'finite' in message:
@@ -80,10 +88,12 @@ def failure_category(error):
 
 
 def run(node, config, config_path, output, execute):
+    if config.get('job', {}).get('enabled'):
+        return run_job(node, config, config_path, output, execute)
     share = Path(get_package_share_directory('fr5v6_weld_planning'))
     robot_share = Path(get_package_share_directory('fr5v6_ros2_control'))
     mesh_path = (share / config['workpiece']['mesh']).resolve()
-    prepared = prepare_geometry(mesh_path, config)
+    prepared = prepare_via_nodes(node, config_path, config)[0]
     result_file = _result_path(output)
     metadata = {
         'schema_version': 1,
@@ -106,6 +116,10 @@ def run(node, config, config_path, output, execute):
     bounds = _bounds(robot_share / 'urdf/fr5v6.urdf', config['robot']['joints'])
     executor = WeldMoveItExecutor(node, config, bounds)
     executor.ready()
+    ready = [config['robot']['ready_joint_positions'][name] for name in config['robot']['joints']]
+    validate_ready_state(executor.positions, ready, config['safety']['initial_joint_tolerance'])
+    if not executor.state_valid(executor.positions):
+        raise TrajectoryValidationError('initial pose collision in planning scene')
     world_poses = world_path_poses(prepared.path, config['workpiece']['pose_in_world'])
     segments = [point.segment for point in prepared.path]
     states = executor.solve_ik(world_poses, segments)
@@ -130,6 +144,8 @@ def run(node, config, config_path, output, execute):
         'seam_length_m': prepared.selected.length,
         'path_point_count': len(prepared.path),
         'dense_collision_state_count': dense_count,
+        'initial_joint_positions': dict(zip(config['robot']['joints'], executor.positions)),
+        'approach_joint_positions': dict(zip(config['robot']['joints'], states[0])),
         **fk_metrics,
     }
     if execute:
@@ -144,9 +160,46 @@ def run(node, config, config_path, output, execute):
     return result, visualization
 
 
+def run_job(node, config, config_path, output, execute):
+    mesh_path = Path(config['workpiece']['mesh']).resolve()
+    if _sha256(mesh_path) != config['job']['mesh_sha256']:
+        raise ConfigError('job STL snapshot checksum changed')
+    prepared = prepare_via_nodes(node, config_path, config)
+    metadata = {'schema_version': 2, 'frame_id': 'workpiece_frame',
+                'workpiece_sha256': _sha256(mesh_path), 'config_sha256': _sha256(config_path),
+                'workpiece_pose': config['workpiece']['pose_in_world'],
+                'mesh_scale': config['workpiece']['mesh_scale'],
+                'units': {'length': 'm', 'angle': 'rad'}}
+    write_job_outputs(output, prepared, metadata)
+    visualization = WeldVisualization(node)
+    visualization.publish_markers(build_job_markers(
+        prepared, mesh_path.as_uri(), config['workpiece']['pose_in_world'], config['workpiece']['mesh_scale']))
+    WorkpieceSynchronizer(node, config['timeouts']['startup']).apply(
+        prepared[0].mesh, mesh_path, config['workpiece']['pose_in_world'],
+        [config['workpiece']['mesh_scale']] * 3)
+    robot_share = Path(get_package_share_directory('fr5v6_ros2_control'))
+    executor = WeldMoveItExecutor(node, config, _bounds(robot_share / 'urdf/fr5v6.urdf', config['robot']['joints']))
+    executor.ready()
+    validate_ready_state(executor.positions,
+                         [config['robot']['ready_joint_positions'][name] for name in executor.joints],
+                         config['safety']['initial_joint_tolerance'])
+    if not executor.state_valid(executor.positions):
+        raise TrajectoryValidationError('initial pose collision in planning scene')
+    initial_state = executor.robot_state(executor.positions)
+    def persist(result):
+        result.update(metadata)
+        result['updated_at'] = datetime.now(timezone.utc).isoformat()
+        _write_result(_result_path(output), result)
+    result = run_batch(prepared, executor, config, execute, persist,
+                       lambda trajectories: visualization.publish_trajectories(trajectories, initial_state))
+    result['path_point_count'] = sum(len(item.path) for item in prepared)
+    persist(result)
+    return result, visualization
+
+
 def main():
     rclpy.init()
-    node = rclpy.create_node('fr5v6_weld_demo')
+    node = rclpy.create_node('weld_task_manager')
     node.declare_parameter('config_file', '')
     node.declare_parameter('output_dir', '/home/gsx/FR_Weld_Seam_Planning_ws/output')
     node.declare_parameter('execute', False)
@@ -170,15 +223,16 @@ def main():
     except Exception as error:
         exit_code = 1
         node.get_logger().error(str(error))
-        _write_result(result_file, {
+        failure = dict(error.result) if isinstance(error, JobFailure) else {}
+        failure.update({
             'status': 'failed',
-            'failure_category': failure_category(error),
+            'failure_category': failure_category(error.cause if isinstance(error, JobFailure) else error),
             'detail': str(error),
             'execute_requested': execute,
-            'followup_motion_suppressed': bool(execute) and (
-                failure_category(error) in {'execution', 'terminal_unknown'}),
+            'followup_motion_suppressed': bool(execute),
             'finished_at': datetime.now(timezone.utc).isoformat(),
         })
+        _write_result(result_file, failure)
     finally:
         node.destroy_node()
         if rclpy.ok():
